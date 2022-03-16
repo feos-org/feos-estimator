@@ -1,20 +1,22 @@
 use feos_core::EosError;
-use ndarray::{arr1, concatenate, Array1, ArrayView1, Axis};
-use quantity::{QuantityError, QuantityScalar};
-use std::fmt;
-use std::fmt::Write;
+use quantity::QuantityError;
 use std::num::ParseFloatError;
-use std::rc::Rc;
 use thiserror::Error;
 
 mod dataset;
 pub use dataset::DataSet;
-mod binary_vle;
+// mod binary_vle;
 mod estimator;
+mod loss;
+pub use loss::Loss;
 mod vapor_pressure;
+mod liquid_density;
+mod viscosity;
+mod thermal_conductivity;
+mod diffusion;
 
 #[derive(Debug, Error)]
-pub enum FitError {
+pub enum EstimatorError {
     #[error("Missing input. Need '{needed}' to evaluate '{to_evaluate}'.")]
     MissingInput { needed: String, to_evaluate: String },
     #[error("Input has not the same amount of data as the target.")]

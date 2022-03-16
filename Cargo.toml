@@ -7,7 +7,7 @@ edition = "2018"
 
 [dependencies]
 feos-core = { git = "https://github.com/feos-org/feos-core", branch = "main" }
-quantity = "0.3"
+quantity = "0.5"
 ndarray = "0.15"
 thiserror = "1.0"
 ndarray-stats = "*"
