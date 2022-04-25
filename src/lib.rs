@@ -15,14 +15,13 @@ mod viscosity;
 mod thermal_conductivity;
 mod diffusion;
 
+#[cfg(feature = "python")]
+pub mod python;
+
 #[derive(Debug, Error)]
 pub enum EstimatorError {
-    #[error("Missing input. Need '{needed}' to evaluate '{to_evaluate}'.")]
-    MissingInput { needed: String, to_evaluate: String },
     #[error("Input has not the same amount of data as the target.")]
     IncompatibleInput,
-    #[error("Keyword '{0}' unknown. Try: 'liquid density', 'vapor pressure', 'equilibrium liquid density'")]
-    KeyError(String),
     #[error(transparent)]
     ShapeError(#[from] ndarray::ShapeError),
     #[error(transparent)]

@@ -8,12 +8,16 @@ use quantity::{QuantityArray1, QuantityScalar};
 use std::collections::HashMap;
 use std::rc::Rc;
 
-/// Store experimental data of liquid densities and compare to the equation of state.
+/// Liquid mass density data as function of pressure and temperature.
 #[derive(Clone)]
 pub struct LiquidDensity<U: EosUnit> {
+    /// mass density
     pub target: QuantityArray1<U>,
+    /// temperature
     temperature: QuantityArray1<U>,
+    /// pressure
     pressure: QuantityArray1<U>,
+    /// number of data points
     datapoints: usize,
 }
 
@@ -166,7 +170,7 @@ impl<U: EosUnit, E: EquationOfState + MolarWeight<U>> DataSet<U, E>
         let mut prediction = Array1::zeros(self.datapoints) * unit;
         for i in 0..self.datapoints {
             let t = self.temperature.get(i);
-            if let Ok(state) = PhaseEquilibrium::pure_t(eos, t, None, SolverOptions::default()) {
+            if let Ok(state) = PhaseEquilibrium::pure(eos, t, None, SolverOptions::default()) {
                 prediction.try_set(i, state.liquid().mass_density())?;
             } else {
                 if self.extrapolate {
