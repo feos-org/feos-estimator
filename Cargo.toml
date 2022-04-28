@@ -1,13 +1,26 @@
 [package]
 name = "feos-estimator"
 version = "0.1.0"
+authors = ["Gernot Bauer <bauer@itt.uni-stuttgart.de>",
+           "Philipp Rehner <prehner@ethz.ch"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT OR Apache-2.0"
+description = "Functionalities for parameter optimization for the `feos` project."
+homepage = "https://github.com/feos-org"
+readme = "README.md"
+repository = "https://github.com/feos-org/feos-estimator"
+keywords = ["physics", "thermodynamics", "equations_of_state", "parameter_optimization"]
+categories = ["science"]
+exclude = ["/.github/*", "*.ipynb", "/docs"]
 
 [dependencies]
-feos-core = { git = "https://github.com/feos-org/feos-core", branch = "main" }
-quantity = "0.3"
+feos-core = "0.2"
+quantity = "0.5"
 ndarray = "0.15"
 thiserror = "1.0"
-ndarray-stats = "*"
+numpy = { version = "0.16", optional = true }
+pyo3 = { version = "0.16", optional = true }
+
+[features]
+default = []
+python = ["pyo3", "numpy", "quantity/python"]
