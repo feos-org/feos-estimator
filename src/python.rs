@@ -184,7 +184,7 @@ macro_rules! impl_estimator {
             /// Parameters
             /// ----------
             /// target : SIArray1
-            ///     Experimental data for vapor pressure.
+            ///     Experimental data for liquid density.
             /// temperature : SIArray1
             ///     Temperature for experimental data points.
             /// pressure : SIArray1
@@ -213,21 +213,13 @@ macro_rules! impl_estimator {
             /// Parameters
             /// ----------
             /// target : SIArray1
-            ///     Experimental data for vapor pressure.
+            ///     Experimental data for liquid density.
             /// temperature : SIArray1
             ///     Temperature for experimental data points.
             ///
             /// Returns
             /// -------
             /// DataSet
-            ///
-            /// Notes
-            /// -----
-            /// The cost function for the liquid density is the relative difference.
-            ///
-            /// See also
-            /// --------
-            /// eos_python.saft.estimator.DataSet.relative_difference
             #[staticmethod]
             #[pyo3(text_signature = "(target, temperature)")]
             fn equilibrium_liquid_density(
@@ -237,6 +229,90 @@ macro_rules! impl_estimator {
                 Ok(Self(Rc::new(EquilibriumLiquidDensity::<SIUnit>::new(
                     target.clone().into(),
                     temperature.clone().into(),
+                )?)))
+            }
+
+            /// Create a DataSet with experimental data for viscosity.
+            ///
+            /// Parameters
+            /// ----------
+            /// target : SIArray1
+            ///     Experimental data for viscosity.
+            /// temperature : SIArray1
+            ///     Temperature for experimental data points.
+            /// pressure : SIArray1
+            ///     Pressure for experimental data points.
+            ///
+            /// Returns
+            /// -------
+            /// DataSet
+            #[staticmethod]
+            #[pyo3(text_signature = "(target, temperature, pressure)")]
+            fn viscosity(
+                target: &PySIArray1,
+                temperature: &PySIArray1,
+                pressure: &PySIArray1,
+            ) -> PyResult<Self> {
+                Ok(Self(Rc::new(Viscosity::<SIUnit>::new(
+                    target.clone().into(),
+                    temperature.clone().into(),
+                    pressure.clone().into(),
+                )?)))
+            }
+
+            /// Create a DataSet with experimental data for thermal conductivity.
+            ///
+            /// Parameters
+            /// ----------
+            /// target : SIArray1
+            ///     Experimental data for thermal conductivity.
+            /// temperature : SIArray1
+            ///     Temperature for experimental data points.
+            /// pressure : SIArray1
+            ///     Pressure for experimental data points.
+            ///
+            /// Returns
+            /// -------
+            /// DataSet
+            #[staticmethod]
+            #[pyo3(text_signature = "(target, temperature, pressure)")]
+            fn thermal_conductivity(
+                target: &PySIArray1,
+                temperature: &PySIArray1,
+                pressure: &PySIArray1,
+            ) -> PyResult<Self> {
+                Ok(Self(Rc::new(ThermalConductivity::<SIUnit>::new(
+                    target.clone().into(),
+                    temperature.clone().into(),
+                    pressure.clone().into(),
+                )?)))
+            }
+
+            /// Create a DataSet with experimental data for diffusion coefficient.
+            ///
+            /// Parameters
+            /// ----------
+            /// target : SIArray1
+            ///     Experimental data for diffusion coefficient.
+            /// temperature : SIArray1
+            ///     Temperature for experimental data points.
+            /// pressure : SIArray1
+            ///     Pressure for experimental data points.
+            ///
+            /// Returns
+            /// -------
+            /// DataSet
+            #[staticmethod]
+            #[pyo3(text_signature = "(target, temperature, pressure)")]
+            fn diffusion(
+                target: &PySIArray1,
+                temperature: &PySIArray1,
+                pressure: &PySIArray1,
+            ) -> PyResult<Self> {
+                Ok(Self(Rc::new(Diffusion::<SIUnit>::new(
+                    target.clone().into(),
+                    temperature.clone().into(),
+                    pressure.clone().into(),
                 )?)))
             }
 
@@ -279,7 +355,7 @@ macro_rules! impl_estimator {
         ///     the weights are normalized (sum of weights equals unity).
         /// losses : List[Loss]
         ///     The loss functions for each property.
-        /// 
+        ///
         /// Returns
         /// -------
         /// Estimator
