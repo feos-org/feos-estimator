@@ -89,13 +89,10 @@ impl<U: EosUnit, E: EquationOfState> DataSet<U, E> for VaporPressure<U> {
             let t = self.temperature.get(i);
             if let Some(pvap) = PhaseEquilibrium::vapor_pressure(eos, t)[0] {
                 prediction.try_set(i, pvap)?;
+            } else if self.extrapolate {
+                prediction.try_set(i, (a + b.to_reduced(t)?).exp() * U::reference_pressure())?;
             } else {
-                if self.extrapolate {
-                    prediction
-                        .try_set(i, (a + b.to_reduced(t)?).exp() * U::reference_pressure())?;
-                } else {
-                    prediction.try_set(i, f64::NAN * U::reference_pressure())?
-                }
+                prediction.try_set(i, f64::NAN * U::reference_pressure())?
             }
         }
         Ok(prediction)
