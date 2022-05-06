@@ -30,6 +30,26 @@ macro_rules! impl_estimator {
                 Self(Loss::Linear)
             }
 
+            /// Create a loss function according to SoftL1's method.
+            ///
+            /// `loss = s**2 * rho(f**2 / s**2)`
+            /// where `rho(z) = 2 * ((1 + z)**0.5 - 1)`.
+            /// `s` is the scaling factor.
+            ///
+            /// Parameters
+            /// ----------
+            /// scaling_factor : f64
+            ///     Scaling factor for SoftL1 loss function.
+            ///
+            /// Returns
+            /// -------
+            /// Loss
+            #[staticmethod]
+            #[pyo3(text_signature = "(scaling_factor)")]
+            pub fn softl1(scaling_factor: f64) -> Self {
+                Self(Loss::SoftL1(scaling_factor))
+            }
+
             /// Create a loss function according to Huber's method.
             ///
             /// `loss = s**2 * rho(f**2 / s**2)`
@@ -48,6 +68,46 @@ macro_rules! impl_estimator {
             #[pyo3(text_signature = "(scaling_factor)")]
             pub fn huber(scaling_factor: f64) -> Self {
                 Self(Loss::Huber(scaling_factor))
+            }
+
+            /// Create a loss function according to Cauchy's method.
+            ///
+            /// `loss = s**2 * rho(f**2 / s**2)`
+            /// where `rho(z) = ln(1 + z)`.
+            /// `s` is the scaling factor.
+            ///
+            /// Parameters
+            /// ----------
+            /// scaling_factor : f64
+            ///     Scaling factor for SoftL1 loss function.
+            ///
+            /// Returns
+            /// -------
+            /// Loss
+            #[staticmethod]
+            #[pyo3(text_signature = "(scaling_factor)")]
+            pub fn cauchy(scaling_factor: f64) -> Self {
+                Self(Loss::Cauchy(scaling_factor))
+            }
+
+            /// Create a loss function according to Arctan's method.
+            ///
+            /// `loss = s**2 * rho(f**2 / s**2)`
+            /// where `rho(z) = arctan(z)`.
+            /// `s` is the scaling factor.
+            ///
+            /// Parameters
+            /// ----------
+            /// scaling_factor : f64
+            ///     Scaling factor for SoftL1 loss function.
+            ///
+            /// Returns
+            /// -------
+            /// Loss
+            #[staticmethod]
+            #[pyo3(text_signature = "(scaling_factor)")]
+            pub fn arctan(scaling_factor: f64) -> Self {
+                Self(Loss::Arctan(scaling_factor))
             }
         }
 
