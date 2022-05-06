@@ -4,8 +4,9 @@ use std::num::ParseFloatError;
 use thiserror::Error;
 
 mod dataset;
-pub use dataset::DataSet;
-// mod binary_vle;
+pub use dataset::{DataSet, DataSetBinary};
+mod binary_vle;
+pub use binary_vle::{Cost, BinaryTPx};
 mod estimator;
 pub use estimator::Estimator;
 mod loss;

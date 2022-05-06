@@ -319,6 +319,80 @@ macro_rules! impl_estimator {
             }
         }
 
+        /// A collection of experimental data of binary mixtures
+        /// that can be used to compute cost functions and 
+        /// make predictions using an equation of state.
+        #[pyclass(name = "DataSetBinary", unsendable)]
+        #[derive(Clone)]
+        pub struct PyDataSetBinary(Rc<dyn DataSetBinary<SIUnit, $eos>>);
+
+        #[pymethods]
+        impl PyDataSetBinary {
+            /// Compute the cost function for each input value.
+            ///
+            /// The cost function that is used depends on the
+            /// property. See the class constructors to learn
+            /// about the cost functions of the properties.
+            ///
+            /// Parameters
+            /// ----------
+            /// eos : PyEos
+            ///     The equation of state that is used.
+            ///
+            /// Returns
+            /// -------
+            /// numpy.ndarray[Float]
+            ///     The cost function evaluated for each experimental data point.
+            #[pyo3(text_signature = "($self, eos)")]
+            fn cost<'py>(
+                &self,
+                eos: &$py_eos,
+                loss: PyLoss,
+                py: Python<'py>,
+            ) -> PyResult<&'py PyArray1<f64>> {
+                Ok(self.0.cost(&eos.0, loss.0)?.view().to_pyarray(py))
+            }
+
+            /// Create a DataSet with experimental data for binary mixture
+            /// with given temperature, pressure and liquid mole fractions.
+            ///
+            /// Parameters
+            /// ----------
+            /// temperature : SIArray1
+            ///     Temperature for experimental data points.
+            /// pressure : SIArray1
+            ///     Pressure for experimental data points.
+            /// liquid_molefrac : numpy.ndarray[float]
+            ///     liquid mole fraction of substance 0.
+            /// cost : Cost
+            ///     How to compute the cost.
+            ///
+            /// Returns
+            /// -------
+            /// ``DataSet``
+            #[staticmethod]
+            #[pyo3(text_signature = "(temperature, pressure, liquid_molefrac, cost)")]
+            fn vle_tpx(
+                temperature: &PySIArray1,
+                pressure: &PySIArray1,
+                liquid_molefracs: &PyArray1<f64>,
+                cost: Cost,
+            ) -> PyResult<Self> {
+                Ok(Self(Rc::new(BinaryTPx::<SIUnit>::new(
+                    temperature.clone().into(),
+                    pressure.clone().into(),
+                    liquid_molefracs.to_owned_array(),
+                    cost
+                )?)))
+            }
+
+            /// Return `target` as ``SIArray1``.
+            #[getter]
+            fn get_datapoints(&self) -> usize {
+                self.0.datapoints()
+            }
+        }
+
         /// A collection `DataSets` that can be used to compute metrics for experimental data.
         ///
         /// Parameters

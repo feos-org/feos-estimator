@@ -78,3 +78,17 @@ impl<U: EosUnit, E: EquationOfState> fmt::Display for dyn DataSet<U, E> {
         )
     }
 }
+
+/// Utilities for working with experimental data of binary mixtures.
+///
+/// Functionalities in the context of optimizations of
+/// parameters of equations of state.
+pub trait DataSetBinary<U: EosUnit, E: EquationOfState> {
+    /// Evaluate the cost function.
+    fn cost(&self, eos: &Rc<E>, loss: Loss) -> Result<Array1<f64>, EstimatorError>
+    where
+        QuantityScalar<U>: std::fmt::Display + std::fmt::LowerExp;
+
+    /// Returns the number of experimental data points.
+    fn datapoints(&self) -> usize;
+}
