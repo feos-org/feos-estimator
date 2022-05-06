@@ -79,7 +79,7 @@ impl<U: EosUnit, E: EquationOfState> DataSet<U, E> for VaporPressure<U> {
 
         let t0 = 0.9 * tc;
         let p0 = PhaseEquilibrium::pure(eos, t0, None, SolverOptions::default())?
-            .liquid()
+            .vapor()
             .pressure(Contributions::Total);
 
         let b = pc.to_reduced(p0)?.ln() / (1.0 / tc - 1.0 / t0);
