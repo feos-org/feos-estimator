@@ -160,7 +160,7 @@ macro_rules! impl_estimator {
             /// extrapolate : bool, optional
             ///     Use Antoine type equation to extrapolate vapor
             ///     pressure if experimental data is above critial
-            ///     point of model.
+            ///     point of model. Defaults to False.
             ///
             /// Returns
             /// -------
@@ -170,12 +170,12 @@ macro_rules! impl_estimator {
             fn vapor_pressure(
                 target: &PySIArray1,
                 temperature: &PySIArray1,
-                extrapolate: bool,
+                extrapolate: Option<bool>,
             ) -> PyResult<Self> {
                 Ok(Self(Rc::new(VaporPressure::<SIUnit>::new(
                     target.clone().into(),
                     temperature.clone().into(),
-                    extrapolate,
+                    extrapolate.unwrap_or(false),
                 )?)))
             }
 
@@ -416,8 +416,6 @@ macro_rules! impl_estimator {
     };
 }
 
-
-
 #[macro_export]
 macro_rules! impl_estimator_entropy_scaling {
     ($eos:ty, $py_eos:ty) => {
@@ -507,5 +505,5 @@ macro_rules! impl_estimator_entropy_scaling {
                 )?)))
             }
         }
-    }
+    };
 }
