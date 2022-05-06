@@ -18,7 +18,7 @@ macro_rules! impl_estimator {
         #[pymethods]
         impl PyLoss {
             /// Create a linear loss function.
-            /// 
+            ///
             /// `loss = s**2 * rho(f**2 / s**2)`
             /// where `rho(z) = z` and `s = 1`.
             ///
@@ -31,7 +31,7 @@ macro_rules! impl_estimator {
             }
 
             /// Create a loss function according to Huber's method.
-            /// 
+            ///
             /// `loss = s**2 * rho(f**2 / s**2)`
             /// where `rho(z) = z if z <= 1 else 2*z**0.5 - 1`.
             /// `s` is the scaling factor.
@@ -75,8 +75,13 @@ macro_rules! impl_estimator {
             /// numpy.ndarray[Float]
             ///     The cost function evaluated for each experimental data point.
             #[pyo3(text_signature = "($self, eos)")]
-            fn cost<'py>(&self, eos: &$py_eos, py: Python<'py>) -> PyResult<&'py PyArray1<f64>> {
-                Ok(self.0.cost(&eos.0)?.view().to_pyarray(py))
+            fn cost<'py>(
+                &self,
+                eos: &$py_eos,
+                loss: PyLoss,
+                py: Python<'py>,
+            ) -> PyResult<&'py PyArray1<f64>> {
+                Ok(self.0.cost(&eos.0, loss.0)?.view().to_pyarray(py))
             }
 
             /// Return the property of interest for each data point
@@ -152,37 +157,25 @@ macro_rules! impl_estimator {
             ///     Experimental data for vapor pressure.
             /// temperature : SIArray1
             ///     Temperature for experimental data points.
-            /// std_parameters : List[float], optional
-            ///     Parameters for temperature dependent function
-            ///     that models the variance of experimental vapor pressure data.
-            ///     If not provided, all data points have the same weight
-            ///     for the cost function.
+            /// extrapolate : bool, optional
+            ///     Use Antoine type equation to extrapolate vapor
+            ///     pressure if experimental data is above critial
+            ///     point of model. Defaults to False.
             ///
             /// Returns
             /// -------
             /// ``DataSet``
-            ///
-            /// Notes
-            /// -----
-            /// The function for the experimental standard deviation as
-            /// a function of the reduced temperature, :math:`T^* = T / T_\text{c}`, reads
-            ///
-            /// .. math:: \sigma_\text{experimental} = \exp\left(-p_0 T^* + p_1\right) + p_2
-            ///
-            /// The critical temperature, :math:`T_\text{c}`, is computed from the equation of state.
-            /// The inverse variances (i.e. :math:`\sigma^2`) are normalized and then used to
-            /// weight the data points when evaluating the cost function.
             #[staticmethod]
-            #[pyo3(text_signature = "(target, temperature, std_parameters)")]
+            #[pyo3(text_signature = "(target, temperature, extrapolate)")]
             fn vapor_pressure(
                 target: &PySIArray1,
                 temperature: &PySIArray1,
-                std_parameters: Option<Vec<f64>>,
+                extrapolate: Option<bool>,
             ) -> PyResult<Self> {
                 Ok(Self(Rc::new(VaporPressure::<SIUnit>::new(
                     target.clone().into(),
                     temperature.clone().into(),
-                    std_parameters.unwrap_or(vec![0.0, 0.0, 0.0]),
+                    extrapolate.unwrap_or(false),
                 )?)))
             }
 
@@ -191,7 +184,7 @@ macro_rules! impl_estimator {
             /// Parameters
             /// ----------
             /// target : SIArray1
-            ///     Experimental data for vapor pressure.
+            ///     Experimental data for liquid density.
             /// temperature : SIArray1
             ///     Temperature for experimental data points.
             /// pressure : SIArray1
@@ -200,14 +193,6 @@ macro_rules! impl_estimator {
             /// Returns
             /// -------
             /// DataSet
-            ///
-            /// Notes
-            /// -----
-            /// The cost function for the liquid density is the relative difference.
-            ///
-            /// See also
-            /// --------
-            /// eos_python.saft.estimator.DataSet.relative_difference
             #[staticmethod]
             #[pyo3(text_signature = "(target, temperature, pressure)")]
             fn liquid_density(
@@ -228,21 +213,13 @@ macro_rules! impl_estimator {
             /// Parameters
             /// ----------
             /// target : SIArray1
-            ///     Experimental data for vapor pressure.
+            ///     Experimental data for liquid density.
             /// temperature : SIArray1
             ///     Temperature for experimental data points.
             ///
             /// Returns
             /// -------
             /// DataSet
-            ///
-            /// Notes
-            /// -----
-            /// The cost function for the liquid density is the relative difference.
-            ///
-            /// See also
-            /// --------
-            /// eos_python.saft.estimator.DataSet.relative_difference
             #[staticmethod]
             #[pyo3(text_signature = "(target, temperature)")]
             fn equilibrium_liquid_density(
@@ -292,18 +269,24 @@ macro_rules! impl_estimator {
         /// weights : List[float]
         ///     The weight of each property. When computing the cost function,
         ///     the weights are normalized (sum of weights equals unity).
+        /// losses : List[Loss]
+        ///     The loss functions for each property.
+        ///
+        /// Returns
+        /// -------
+        /// Estimator
         #[pyclass(name = "Estimator", unsendable)]
-        #[pyo3(text_signature = "(data, weights)")]
+        #[pyo3(text_signature = "(data, weights, losses)")]
         pub struct PyEstimator(Estimator<SIUnit, $eos>);
 
         #[pymethods]
         impl PyEstimator {
             #[new]
-            fn new(data: Vec<PyDataSet>, loss: Vec<PyLoss>, weights: Vec<f64>) -> Self {
+            fn new(data: Vec<PyDataSet>, weights: Vec<f64>, losses: Vec<PyLoss>) -> Self {
                 Self(Estimator::new(
                     data.iter().map(|d| d.0.clone()).collect(),
-                    loss.iter().map(|l| l.0.clone()).collect(),
                     weights,
+                    losses.iter().map(|l| l.0.clone()).collect(),
                 ))
             }
 
@@ -428,6 +411,98 @@ macro_rules! impl_estimator {
 
             fn __repr__(&self) -> PyResult<String> {
                 Ok(self.0.to_string())
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_estimator_entropy_scaling {
+    ($eos:ty, $py_eos:ty) => {
+        #[pymethods]
+        impl PyDataSet {
+            /// Create a DataSet with experimental data for viscosity.
+            ///
+            /// Parameters
+            /// ----------
+            /// target : SIArray1
+            ///     Experimental data for viscosity.
+            /// temperature : SIArray1
+            ///     Temperature for experimental data points.
+            /// pressure : SIArray1
+            ///     Pressure for experimental data points.
+            ///
+            /// Returns
+            /// -------
+            /// DataSet
+            #[staticmethod]
+            #[pyo3(text_signature = "(target, temperature, pressure)")]
+            fn viscosity(
+                target: &PySIArray1,
+                temperature: &PySIArray1,
+                pressure: &PySIArray1,
+            ) -> PyResult<Self> {
+                Ok(Self(Rc::new(Viscosity::<SIUnit>::new(
+                    target.clone().into(),
+                    temperature.clone().into(),
+                    pressure.clone().into(),
+                )?)))
+            }
+
+            /// Create a DataSet with experimental data for thermal conductivity.
+            ///
+            /// Parameters
+            /// ----------
+            /// target : SIArray1
+            ///     Experimental data for thermal conductivity.
+            /// temperature : SIArray1
+            ///     Temperature for experimental data points.
+            /// pressure : SIArray1
+            ///     Pressure for experimental data points.
+            ///
+            /// Returns
+            /// -------
+            /// DataSet
+            #[staticmethod]
+            #[pyo3(text_signature = "(target, temperature, pressure)")]
+            fn thermal_conductivity(
+                target: &PySIArray1,
+                temperature: &PySIArray1,
+                pressure: &PySIArray1,
+            ) -> PyResult<Self> {
+                Ok(Self(Rc::new(ThermalConductivity::<SIUnit>::new(
+                    target.clone().into(),
+                    temperature.clone().into(),
+                    pressure.clone().into(),
+                )?)))
+            }
+
+            /// Create a DataSet with experimental data for diffusion coefficient.
+            ///
+            /// Parameters
+            /// ----------
+            /// target : SIArray1
+            ///     Experimental data for diffusion coefficient.
+            /// temperature : SIArray1
+            ///     Temperature for experimental data points.
+            /// pressure : SIArray1
+            ///     Pressure for experimental data points.
+            ///
+            /// Returns
+            /// -------
+            /// DataSet
+            #[staticmethod]
+            #[pyo3(text_signature = "(target, temperature, pressure)")]
+            fn diffusion(
+                target: &PySIArray1,
+                temperature: &PySIArray1,
+                pressure: &PySIArray1,
+            ) -> PyResult<Self> {
+                Ok(Self(Rc::new(Diffusion::<SIUnit>::new(
+                    target.clone().into(),
+                    temperature.clone().into(),
+                    pressure.clone().into(),
+                )?)))
             }
         }
     };

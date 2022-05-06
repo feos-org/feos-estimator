@@ -47,18 +47,14 @@ where
     /// Each cost contains the inverse weight.
     pub fn cost(&self, eos: &Rc<E>) -> Result<Array1<f64>, EstimatorError> {
         let w = arr1(&self.weights) / self.weights.iter().sum::<f64>();
-        let predictions: Result<Vec<Array1<f64>>, EstimatorError> = self
+        let predictions = self
             .data
             .iter()
             .enumerate()
             .map(|(i, d)| Ok(d.cost(eos, self.losses[i])? * w[i]))
-            .collect();
-        if let Ok(p) = predictions {
-            let aview: Vec<ArrayView1<f64>> = p.iter().map(|pi| pi.view()).collect();
-            Ok(concatenate(Axis(0), &aview)?)
-        } else {
-            Err(EstimatorError::IncompatibleInput)
-        }
+            .collect::<Result<Vec<_>, EstimatorError>>()?;
+        let aview: Vec<ArrayView1<f64>> = predictions.iter().map(|pi| pi.view()).collect();
+        Ok(concatenate(Axis(0), &aview)?)
     }
 
     /// Returns the properties as computed by the equation of state for each `DataSet`.
@@ -75,7 +71,10 @@ where
     }
 
     /// Returns the mean absolute relative difference for each `DataSet`.
-    pub fn mean_absolute_relative_difference(&self, eos: &Rc<E>) -> Result<Array1<f64>, EstimatorError> {
+    pub fn mean_absolute_relative_difference(
+        &self,
+        eos: &Rc<E>,
+    ) -> Result<Array1<f64>, EstimatorError> {
         self.data
             .iter()
             .map(|d| d.mean_absolute_relative_difference(eos))

@@ -104,9 +104,7 @@ impl<U: EosUnit, E: EquationOfState + MolarWeight<U>> DataSet<U, E> for LiquidDe
 pub struct EquilibriumLiquidDensity<U: EosUnit> {
     pub target: QuantityArray1<U>,
     temperature: QuantityArray1<U>,
-    max_temperature: QuantityScalar<U>,
     datapoints: usize,
-    extrapolate: bool,
 }
 
 impl<U: EosUnit> EquilibriumLiquidDensity<U> {
@@ -114,21 +112,12 @@ impl<U: EosUnit> EquilibriumLiquidDensity<U> {
     pub fn new(
         target: QuantityArray1<U>,
         temperature: QuantityArray1<U>,
-        extrapolate: bool,
     ) -> Result<Self, EstimatorError> {
         let datapoints = target.len();
-        let max_temperature = temperature
-            .to_reduced(U::reference_temperature())?
-            .into_iter()
-            .reduce(|a, b| a.max(b))
-            .unwrap()
-            * U::reference_temperature();
         Ok(Self {
             target,
             temperature,
-            max_temperature,
             datapoints,
-            extrapolate,
         })
     }
 
@@ -158,14 +147,6 @@ impl<U: EosUnit, E: EquationOfState + MolarWeight<U>> DataSet<U, E>
         QuantityScalar<U>: std::fmt::Display + std::fmt::LowerExp,
     {
         let unit = self.target.get(0);
-        let critical_point = State::critical_point(
-            eos,
-            None,
-            Some(self.max_temperature),
-            SolverOptions::default(),
-        )?;
-        let t_c = critical_point.temperature;
-        let rho_c = critical_point.mass_density();
 
         let mut prediction = Array1::zeros(self.datapoints) * unit;
         for i in 0..self.datapoints {
@@ -173,17 +154,7 @@ impl<U: EosUnit, E: EquationOfState + MolarWeight<U>> DataSet<U, E>
             if let Ok(state) = PhaseEquilibrium::pure(eos, t, None, SolverOptions::default()) {
                 prediction.try_set(i, state.liquid().mass_density())?;
             } else {
-                if self.extrapolate {
-                    let tr = t.to_reduced(t_c).unwrap() - 1.0;
-                    let extrapolation = if tr < f64::exp(-1.0) {
-                        rho_c * (1.0 + tr * tr.ln())
-                    } else {
-                        rho_c * 0.62
-                    };
-                    prediction.try_set(i, extrapolation)?;
-                } else {
-                    prediction.try_set(i, f64::NAN * U::reference_pressure())?
-                }
+                prediction.try_set(i, f64::NAN * U::reference_mass() / U::reference_volume())?
             }
         }
         Ok(prediction)
