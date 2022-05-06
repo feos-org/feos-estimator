@@ -320,7 +320,7 @@ macro_rules! impl_estimator {
         }
 
         /// A collection of experimental data of binary mixtures
-        /// that can be used to compute cost functions and 
+        /// that can be used to compute cost functions and
         /// make predictions using an equation of state.
         #[pyclass(name = "DataSetBinary", unsendable)]
         #[derive(Clone)]
@@ -382,7 +382,46 @@ macro_rules! impl_estimator {
                     temperature.clone().into(),
                     pressure.clone().into(),
                     liquid_molefracs.to_owned_array(),
-                    cost
+                    cost,
+                )?)))
+            }
+
+            /// Create a DataSet with experimental data for binary mixture
+            /// with given temperature, pressure, liquid and vapor mole fractions.
+            ///
+            /// Parameters
+            /// ----------
+            /// temperature : SIArray1
+            ///     Temperature for experimental data points.
+            /// pressure : SIArray1
+            ///     Pressure for experimental data points.
+            /// liquid_molefrac : numpy.ndarray[float]
+            ///     liquid mole fraction of substance 0.
+            /// vapor_molefrac : numpy.ndarray[float]
+            ///     vapor mole fraction of substance 0.
+            /// cost : Cost
+            ///     How to compute the cost.
+            ///
+            /// Returns
+            /// -------
+            /// ``DataSet``
+            #[staticmethod]
+            #[pyo3(
+                text_signature = "(temperature, pressure, liquid_molefrac, vapor_molefrac, cost)"
+            )]
+            fn vle_tpxy(
+                temperature: &PySIArray1,
+                pressure: &PySIArray1,
+                liquid_molefracs: &PyArray1<f64>,
+                vapor_molefracs: &PyArray1<f64>,
+                cost: Cost,
+            ) -> PyResult<Self> {
+                Ok(Self(Rc::new(BinaryTPxy::<SIUnit>::new(
+                    temperature.clone().into(),
+                    pressure.clone().into(),
+                    liquid_molefracs.to_owned_array(),
+                    vapor_molefracs.to_owned_array(),
+                    cost,
                 )?)))
             }
 

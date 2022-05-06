@@ -6,7 +6,7 @@ use thiserror::Error;
 mod dataset;
 pub use dataset::{DataSet, DataSetBinary};
 mod binary_vle;
-pub use binary_vle::{Cost, BinaryTPx};
+pub use binary_vle::{Cost, BinaryTPx, BinaryTPxy};
 mod estimator;
 pub use estimator::Estimator;
 mod loss;
