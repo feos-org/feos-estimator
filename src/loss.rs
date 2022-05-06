@@ -6,7 +6,7 @@ pub enum Loss {
     SoftL1(f64),
     Huber(f64),
     Cauchy(f64),
-    Arctan(f64)
+    Arctan(f64),
 }
 
 impl Loss {
@@ -30,7 +30,7 @@ impl Loss {
                 let s2 = s * s;
                 let s2_inv = 1.0 / s2;
                 res.mapv_inplace(|ri| {
-                    (s2 * (2.0 *(((ri*ri*s2_inv) + 1.0).sqrt() -1.0))).sqrt()
+                    (s2 * (2.0 * (((ri * ri * s2_inv) + 1.0).sqrt() - 1.0))).sqrt()
                 })
             }
             Self::Huber(s) => {
@@ -44,19 +44,15 @@ impl Loss {
                     }
                 })
             }
-            Self::Cauchy(s) =>{
+            Self::Cauchy(s) => {
                 let s2 = s * s;
                 let s2_inv = 1.0 / s2;
-                res.mapv_inplace(|ri| {
-                    (s2 * (1.0+(ri*ri*s2_inv)).ln()).sqrt()
-                })
+                res.mapv_inplace(|ri| (s2 * (1.0 + (ri * ri * s2_inv)).ln()).sqrt())
             }
-            Self::Arctan(s) =>{
+            Self::Arctan(s) => {
                 let s2 = s * s;
                 let s2_inv = 1.0 / s2;
-                res.mapv_inplace(|ri| {
-                    (s2 * (ri*ri*s2_inv).atan()).sqrt()
-                })
+                res.mapv_inplace(|ri| (s2 * (ri * ri * s2_inv).atan()).sqrt())
             }
         }
     }
