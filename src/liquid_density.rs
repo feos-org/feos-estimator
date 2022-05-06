@@ -154,7 +154,7 @@ impl<U: EosUnit, E: EquationOfState + MolarWeight<U>> DataSet<U, E>
             if let Ok(state) = PhaseEquilibrium::pure(eos, t, None, SolverOptions::default()) {
                 prediction.try_set(i, state.liquid().mass_density())?;
             } else {
-                prediction.try_set(i, f64::NAN * U::reference_pressure())?
+                prediction.try_set(i, f64::NAN * U::reference_mass() / U::reference_volume())?
             }
         }
         Ok(prediction)
